@@ -15,7 +15,7 @@ const app = express();
 // Middlewares
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://ecommerce-bakers-layout-2.vercel.app/',
+  'https://ecommerce-bakers-layout-2.vercel.app',
 
 ];
 app.use(cors({
