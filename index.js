@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser'; // <-- added
 import connectDB from './libs/db.js';
 import cartRoutes from './routes/cartRoutes.js'; // <-- added
 import orderRoutes from "./routes/orderRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 import { generateUuid } from './middlewares/generateUuid.js'; // <-- added
 
@@ -41,9 +42,8 @@ connectDB();
 app.use(generateUuid)
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
-
-
 app.use("/api/orders", orderRoutes);
 
 

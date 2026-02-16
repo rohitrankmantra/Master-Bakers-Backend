@@ -58,6 +58,7 @@ export const checkout = async (req, res) => {
       totalAmount: totalAmountInPaise / 100,
       paymentStatus: "pending",
       razorpayOrderId: razorpayOrder.id,
+      userEmail: userInfo?.email,
     });
 
     return res.status(200).json({
@@ -137,6 +138,7 @@ export const verifyPayment = async (req, res) => {
     // ✅ Update order
     order.paymentStatus = "paid";
     order.razorpayPaymentId = razorpay_payment_id;
+    order.userEmail = order.userInfo?.email;
     await order.save();
 
     // 🧹 Clear cart
@@ -191,6 +193,32 @@ export const getOrders = async (req, res) => {
     return res.status(200).json(orders);
   } catch (error) {
     console.error("Get orders error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * ===============================
+ * GET ORDERS BY EMAIL (Authenticated Users)
+ * ===============================
+ */
+export const getOrdersByEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const orders = await Order.find({ 
+      userEmail: email.toLowerCase() 
+    }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json(orders);
+  } catch (error) {
+    console.error("Get orders by email error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };

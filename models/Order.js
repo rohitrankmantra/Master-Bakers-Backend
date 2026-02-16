@@ -47,6 +47,13 @@ const OrderSchema = new mongoose.Schema(
     // Razorpay references
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
+
+    // Link to authenticated user (email)
+    userEmail: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
   },
   {
     timestamps: true,
