@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -19,6 +20,7 @@
     "mongoose": "^8.19.0",
     "nodemailer": "^7.0.9",
     "razorpay": "^2.9.6",
+    "resend": "^6.9.2",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

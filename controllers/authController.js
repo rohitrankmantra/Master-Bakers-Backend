@@ -1,8 +1,12 @@
 import dotenv from "dotenv";
+import bcrypt from "bcrypt";
 import OTP from "../models/OTP.js";
+import User from "../models/User.js";
 import { sendOTPEmail, generateOTP } from "../middlewares/mailer.js";
 
 dotenv.config();
+
+const SALT_ROUNDS = 10;
 
 /**
  * Send OTP for Email Verification
@@ -20,17 +24,20 @@ export const sendOTP = async (req, res) => {
     // Generate OTP
     const otp = generateOTP();
 
+    // Hash OTP before storing
+    const hashedOTP = await bcrypt.hash(otp, SALT_ROUNDS);
+
     // Delete any existing OTP for this email
     await OTP.deleteMany({ email: email.toLowerCase() });
 
-    // Save new OTP
+    // Save new OTP (hashed)
     await OTP.create({
       email: email.toLowerCase(),
-      otp,
+      otp: hashedOTP,
       purpose: "signup",
     });
 
-    // Send OTP via email
+    // Send OTP via email (send plain OTP to user)
     const emailSent = await sendOTPEmail(email, otp, name);
 
     if (!emailSent) {
@@ -57,10 +64,9 @@ export const verifyOTP = async (req, res) => {
         .json({ message: "Email and OTP are required" });
     }
 
-    // Find OTP
+    // Find OTP record
     const otpRecord = await OTP.findOne({
       email: email.toLowerCase(),
-      otp,
     });
 
     if (!otpRecord) {
@@ -75,6 +81,15 @@ export const verifyOTP = async (req, res) => {
       return res
         .status(400)
         .json({ message: "OTP has expired" });
+    }
+
+    // Compare provided OTP with hashed OTP using bcrypt
+    const isOTPValid = await bcrypt.compare(otp, otpRecord.otp);
+
+    if (!isOTPValid) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired OTP" });
     }
 
     // Delete OTP after successful verification
@@ -101,17 +116,20 @@ export const sendForgotPasswordOTP = async (req, res) => {
     // Generate OTP
     const otp = generateOTP();
 
+    // Hash OTP before storing
+    const hashedOTP = await bcrypt.hash(otp, SALT_ROUNDS);
+
     // Delete any existing OTP for this email
     await OTP.deleteMany({ email: email.toLowerCase() });
 
-    // Save new OTP
+    // Save new OTP (hashed)
     await OTP.create({
       email: email.toLowerCase(),
-      otp,
+      otp: hashedOTP,
       purpose: "forgot-password",
     });
 
-    // Send OTP via email
+    // Send OTP via email (send plain OTP to user)
     const emailSent = await sendOTPEmail(email, otp, "User");
 
     if (!emailSent) {
@@ -138,10 +156,9 @@ export const resetPassword = async (req, res) => {
         .json({ message: "Email, OTP, and new password are required" });
     }
 
-    // Verify OTP
+    // Find OTP record
     const otpRecord = await OTP.findOne({
       email: email.toLowerCase(),
-      otp,
       purpose: "forgot-password",
     });
 
@@ -155,18 +172,162 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "OTP has expired" });
     }
 
+    // Compare provided OTP with hashed OTP using bcrypt
+    const isOTPValid = await bcrypt.compare(otp, otpRecord.otp);
+
+    if (!isOTPValid) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
     // Delete OTP
     await OTP.deleteOne({ _id: otpRecord._id });
 
-    // Note: Password reset should be handled by the frontend (auth-context)
-    // since passwords are managed there. Return OK so frontend can update localStorage
+    // Hash new password with bcrypt
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    // Update user password in database
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.passwordHash = hashedPassword;
+    await user.save();
 
     return res.status(200).json({
       ok: true,
-      message: "OTP verified. You can now reset your password.",
+      message: "Password reset successfully.",
     });
   } catch (error) {
     console.error("Reset password error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * User Signup
+ */
+export const signup = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Name, email, and password are required" });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(409).json({
+        ok: false,
+        message: "An account with this email already exists.",
+      });
+    }
+
+    // Hash password with bcrypt
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    // Create new user
+    const newUser = await User.create({
+      name,
+      email: email.toLowerCase(),
+      passwordHash,
+      isEmailVerified: false,
+    });
+
+    return res.status(201).json({
+      ok: true,
+      message: "User created successfully. Please verify your email.",
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+      },
+    });
+  } catch (error) {
+    console.error("Signup error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * User Login
+ */
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return res.status(401).json({
+        ok: false,
+        message: "Invalid email or password.",
+      });
+    }
+
+    // Compare password with hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        ok: false,
+        message: "Invalid email or password.",
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      message: "Login successful.",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Mark Email as Verified
+ */
+export const markEmailVerified = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.isEmailVerified = true;
+    await user.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: "Email verified successfully.",
+    });
+  } catch (error) {
+    console.error("Mark email verified error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
