@@ -113,6 +113,20 @@ export const sendForgotPasswordOTP = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log("Forgot Password - Looking for user with email:", normalizedEmail);
+
+    // Check if user exists
+    const user = await User.findOne({ email: normalizedEmail });
+    console.log("User found:", user ? "YES" : "NO");
+
+    if (!user) {
+      return res.status(404).json({ 
+        ok: false,
+        message: "No account found with this email address." 
+      });
+    }
+
     // Generate OTP
     const otp = generateOTP();
 
@@ -120,23 +134,23 @@ export const sendForgotPasswordOTP = async (req, res) => {
     const hashedOTP = await bcrypt.hash(otp, SALT_ROUNDS);
 
     // Delete any existing OTP for this email
-    await OTP.deleteMany({ email: email.toLowerCase() });
+    await OTP.deleteMany({ email: normalizedEmail });
 
     // Save new OTP (hashed)
     await OTP.create({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       otp: hashedOTP,
       purpose: "forgot-password",
     });
 
     // Send OTP via email (send plain OTP to user)
-    const emailSent = await sendOTPEmail(email, otp, "User");
+    const emailSent = await sendOTPEmail(email, otp, user.name);
 
     if (!emailSent) {
       return res.status(500).json({ message: "Failed to send OTP email" });
     }
 
-    return res.status(200).json({ ok: true, message: "OTP sent successfully" });
+    return res.status(200).json({ ok: true, message: "OTP sent successfully to your email" });
   } catch (error) {
     console.error("Send forgot password OTP error:", error);
     return res.status(500).json({ message: "Server error" });
@@ -218,8 +232,11 @@ export const signup = async (req, res) => {
         .json({ message: "Name, email, and password are required" });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log("Signup - Creating user with email:", normalizedEmail);
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(409).json({
         ok: false,
@@ -232,11 +249,13 @@ export const signup = async (req, res) => {
 
     // Create new user
     const newUser = await User.create({
-      name,
-      email: email.toLowerCase(),
+      name: name.trim(),
+      email: normalizedEmail,
       passwordHash,
       isEmailVerified: false,
     });
+
+    console.log("User created successfully:", newUser._id);
 
     return res.status(201).json({
       ok: true,
@@ -266,25 +285,34 @@ export const login = async (req, res) => {
         .json({ message: "Email and password are required" });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log("Login attempt - Email:", normalizedEmail);
+
     // Find user by email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: normalizedEmail });
     
     if (!user) {
+      console.log("Login failed - User not found for email:", normalizedEmail);
       return res.status(401).json({
         ok: false,
         message: "Invalid email or password.",
       });
     }
+
+    console.log("User found, checking password...");
 
     // Compare password with hashed password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
+      console.log("Login failed - Invalid password");
       return res.status(401).json({
         ok: false,
         message: "Invalid email or password.",
       });
     }
+
+    console.log("Login successful for user:", user._id);
 
     return res.status(200).json({
       ok: true,
@@ -313,7 +341,8 @@ export const markEmailVerified = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
     
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -328,6 +357,46 @@ export const markEmailVerified = async (req, res) => {
     });
   } catch (error) {
     console.error("Mark email verified error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Debug - Check if user exists by email
+ */
+export const debugCheckUser = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log("Debug - Looking for user with email:", normalizedEmail);
+
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      console.log("Debug - User NOT found");
+      return res.status(200).json({
+        found: false,
+        message: "User not found in database",
+      });
+    }
+
+    console.log("Debug - User found:", user._id);
+    return res.status(200).json({
+      found: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isEmailVerified: user.isEmailVerified,
+      },
+    });
+  } catch (error) {
+    console.error("Debug error:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
