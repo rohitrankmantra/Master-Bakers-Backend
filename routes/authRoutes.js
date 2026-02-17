@@ -7,6 +7,7 @@ import {
   signup,
   login,
   markEmailVerified,
+  debugCheckUser,
 } from "../controllers/authController.js";
 
 const router = express.Router();
@@ -23,5 +24,8 @@ router.post("/mark-email-verified", markEmailVerified); // Mark email as verifie
 // OTP for forgot password
 router.post("/forgot-password", sendForgotPasswordOTP);  // Send OTP for password reset
 router.post("/reset-password", resetPassword);           // Verify OTP and reset password
+
+// Debug endpoint
+router.post("/debug-check-user", debugCheckUser);        // Check if user exists in DB
 
 export default router;
