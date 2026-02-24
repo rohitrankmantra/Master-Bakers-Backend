@@ -11,14 +11,12 @@ export const generateUuid = (req, res, next) => {
   if (!uuid) {
     uuid = uuidv4();
 
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    res.cookie('uuid', uuid, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-    });
+res.cookie('uuid', uuid, {
+  httpOnly: true,
+  secure: true,        // ALWAYS true (Render is HTTPS)
+  sameSite: 'none',    // REQUIRED for cross-site
+  maxAge: 1000 * 60 * 60 * 24 * 30,
+});
   }
 
   // Ensure req.body exists
