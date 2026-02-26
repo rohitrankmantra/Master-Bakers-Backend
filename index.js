@@ -14,11 +14,16 @@ import { generateUuid } from './middlewares/generateUuid.js'; // <-- added
 const app = express();
 
 // Middlewares
+// origin list can include Render domain and later custom domains
 const allowedOrigins = [
   'http://localhost:3000',
   'https://ecommerce-bakers-layout-2.vercel.app',
+  process.env.FRONTEND_URL,          // e.g. https://www.yoursite.com
+].filter(Boolean);
 
-];
+// simple debug log showing which origins are allowed (omit in production if you prefer)
+console.log('Allowed CORS origins:', allowedOrigins);
+
 app.use(cors({
   origin: (origin, callback) => {
     // allow requests with no origin (like Postman)

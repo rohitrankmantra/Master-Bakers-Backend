@@ -11,12 +11,19 @@ export const generateUuid = (req, res, next) => {
   if (!uuid) {
     uuid = uuidv4();
 
-res.cookie('uuid', uuid, {
-  httpOnly: true,
-  secure: true,        // ALWAYS true (Render is HTTPS)
-  sameSite: 'none',    // REQUIRED for cross-site
-  maxAge: 1000 * 60 * 60 * 24 * 30,
-});
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true,        // ALWAYS true (Render is HTTPS)
+      sameSite: 'none',    // REQUIRED for cross-site
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+    };
+
+    // apply domain if provided
+    if (process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    res.cookie('uuid', uuid, cookieOptions);
   }
 
   // Ensure req.body exists
