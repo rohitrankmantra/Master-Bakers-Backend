@@ -43,6 +43,11 @@ app.use(cookieParser()); // <-- needed to read cookies
 // Connect to MongoDB
 connectDB();
 
+// ensure token secret is configured
+if (!process.env.TOKEN_SECRET) {
+  console.warn('WARNING: TOKEN_SECRET not set; using insecure default. Set TOKEN_SECRET in your environment!');
+}
+
 // visitor middlewares 
 app.use(generateUuid)
 

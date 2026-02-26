@@ -3,11 +3,11 @@ import Cart from "../models/Cart.js";
 // 🛒 Add or update cart
 export const addCart = async (req, res) => {
   try {
-    const uuid = req.cookies?.uuid
+    const uuid = req.visitorUuid
     const { items } = req.body
 
     if (!uuid) {
-      return res.status(400).json({ message: "UUID cookie not found" })
+      return res.status(400).json({ message: "Visitor UUID missing" })
     }
 
     if (!items || !items.length) {
@@ -49,10 +49,10 @@ export const addCart = async (req, res) => {
 // 🔄 Update quantity (increment/decrement)
 export const updateCartItem = async (req, res) => {
   try {
-    const uuid = req.cookies?.uuid
+    const uuid = req.visitorUuid
     const { itemId, quantity } = req.body
 
-    if (!uuid) return res.status(400).json({ message: "UUID missing" })
+    if (!uuid) return res.status(400).json({ message: "Visitor UUID missing" })
     if (!itemId) return res.status(400).json({ message: "Item ID required" })
 
     const cart = await Cart.findOne({ uuid })
@@ -86,8 +86,8 @@ export const updateCartItem = async (req, res) => {
 // 📦 Get cart
 export const getCart = async (req, res) => {
   try {
-    const uuid = req.cookies?.uuid;
-    if (!uuid) return res.status(400).json({ message: "UUID cookie not found" });
+    const uuid = req.visitorUuid;
+    if (!uuid) return res.status(400).json({ message: "Visitor UUID missing" });
 
     const cart = await Cart.findOne({ uuid });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
@@ -103,10 +103,10 @@ export const getCart = async (req, res) => {
 // ❌ Remove ONLY ONE item by _id
 export const removeItem = async (req, res) => {
   try {
-    const uuid = req.cookies?.uuid
+    const uuid = req.visitorUuid
     const { itemId } = req.body
 
-    if (!uuid) return res.status(400).json({ message: "UUID missing" })
+    if (!uuid) return res.status(400).json({ message: "Visitor UUID missing" })
     if (!itemId) return res.status(400).json({ message: "Item ID required" })
 
     const cart = await Cart.findOne({ uuid })

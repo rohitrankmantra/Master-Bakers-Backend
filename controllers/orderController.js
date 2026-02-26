@@ -23,11 +23,11 @@ const razorpay = new Razorpay({
  */
 export const checkout = async (req, res) => {
   try {
-    const uuid = req.cookies?.uuid;
+    const uuid = req.visitorUuid;
     const { userInfo, items } = req.body;
 
     if (!uuid) {
-      return res.status(400).json({ message: "UUID cookie not found" });
+      return res.status(400).json({ message: "Visitor UUID missing" });
     }
 
     if (!userInfo || !items || items.length === 0) {
@@ -79,7 +79,7 @@ export const checkout = async (req, res) => {
  */
 export const verifyPayment = async (req, res) => {
   try {
-    const uuid = req.cookies?.uuid;
+    const uuid = req.visitorUuid;
 
     const {
       razorpay_order_id,
@@ -167,7 +167,7 @@ export const verifyPayment = async (req, res) => {
 export const getOrders = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const uuid = req.cookies?.uuid;
+    const uuid = req.visitorUuid;
 
     // Single order by ID
     if (orderId) {
