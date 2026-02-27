@@ -18,7 +18,7 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'https://ecommerce-bakers-layout-2.vercel.app',
-  'https://bakemasters.in/',
+  'https://bakemasters.in',
   
   process.env.FRONTEND_URL,          // e.g. https://www.yoursite.com
 ].filter(Boolean);
