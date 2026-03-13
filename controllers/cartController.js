@@ -104,7 +104,7 @@ export const getCart = async (req, res) => {
 export const removeItem = async (req, res) => {
   try {
     const uuid = req.visitorUuid
-    const { itemId } = req.body
+    const itemId = req.body.itemId || req.query.itemId
 
     if (!uuid) return res.status(400).json({ message: "Visitor UUID missing" })
     if (!itemId) return res.status(400).json({ message: "Item ID required" })

@@ -12,5 +12,6 @@ router.post("/add", addCart);
 router.put("/update", updateCartItem);
 router.get("/get", getCart);
 router.delete("/remove", removeItem);
+router.post("/remove", removeItem); // Add POST as fallback to avoid DELETE body issues
 
 export default router;
