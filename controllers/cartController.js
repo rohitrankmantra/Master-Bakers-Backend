@@ -89,8 +89,13 @@ export const getCart = async (req, res) => {
     const uuid = req.visitorUuid;
     if (!uuid) return res.status(400).json({ message: "Visitor UUID missing" });
 
-    const cart = await Cart.findOne({ uuid });
-    if (!cart) return res.status(404).json({ message: "Cart not found" });
+    let cart = await Cart.findOne({ uuid });
+
+    // If no cart, create a new one
+    if (!cart) {
+      cart = new Cart({ uuid, items: [] });
+      await cart.save();
+    }
 
     return res.status(200).json({ cart });
   } catch (error) {
