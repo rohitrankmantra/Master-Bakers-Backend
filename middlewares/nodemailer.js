@@ -107,7 +107,7 @@ export const sendAdminEmail = async (order) => {
 
     await resend.emails.send({
       from: "Bake Masters <noreply@bakemasters.in>",
-      to: "vikasrankmantra@gmail.com",
+      to: "bakemasters.in@gmail.com", // Add your admin email here
       subject: `🧁 Order Received: ${order.userInfo.name} - ₹${grandTotal}`,
       html: emailBody,
     });
