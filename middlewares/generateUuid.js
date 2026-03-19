@@ -18,43 +18,87 @@ export const generateUuid = (req, res, next) => {
   const sign = (id) =>
     crypto.createHmac('sha256', secret).update(id).digest('hex');
 
-  // look for token in header or body
-  let token = req.headers['x-visitor-token'] || req.body?.token;
+  // Try multiple header variations (case-insensitive)
+  let token = 
+    req.headers['x-visitor-token'] ||
+    req.headers['X-Visitor-Token'] ||
+    req.headers['X-VISITOR-TOKEN'];
+
   let uuid;
 
+  console.log(`\n[UUID] ═══════════════════════════════════════`);
+  console.log(`[UUID] ${req.method} ${req.path}`);
+  
   if (token) {
+    console.log(`[UUID] 📦 Token found in header: ${token.substring(0, 30)}...`);
     const parts = token.split('.');
     if (parts.length === 2) {
       const [id, sig] = parts;
-      if (sig === sign(id)) {
+      const expectedSig = sign(id);
+      if (sig === expectedSig) {
         uuid = id;
-        console.log(`[UUID] Token verified for UUID: ${uuid.substring(0, 8)}...`);
+        console.log(`[UUID] ✅ Token VERIFIED - Reusing UUID: ${uuid.substring(0, 12)}...`);
       } else {
-        console.warn('Invalid visitor token signature');
+        console.log(`[UUID] ❌ Token signature INVALID - generating new`);
+      }
+    } else {
+      console.log(`[UUID] ❌ Invalid token format (${parts.length} parts) - generating new`);
+    }
+  } else {
+    console.log(`[UUID] ⚠️  No token in header`);
+    
+    // Try query param
+    if (req.query?.token) {
+      const queryToken = req.query.token;
+      const parts = queryToken.split('.');
+      if (parts.length === 2) {
+        const [id, sig] = parts;
+        if (sig === sign(id)) {
+          uuid = id;
+          console.log(`[UUID] Using UUID from query: ${uuid.substring(0, 12)}...`);
+        }
       }
     }
-  }
 
-  // fallback to cookie (legacy support)
-  if (!uuid && req.cookies?.uuid) {
-    uuid = req.cookies.uuid;
-    console.log(`[UUID] Using cookie UUID: ${uuid.substring(0, 8)}...`);
+    // Try cookie
+    if (!uuid && req.cookies?.uuid) {
+      uuid = req.cookies.uuid;
+      console.log(`[UUID] Using UUID from cookie: ${uuid.substring(0, 12)}...`);
+    }
+
+    // Try body
+    if (!uuid && req.body?.token) {
+      const bodyToken = req.body.token;
+      const parts = bodyToken.split('.');
+      if (parts.length === 2) {
+        const [id, sig] = parts;
+        if (sig === sign(id)) {
+          uuid = id;
+          console.log(`[UUID] Using UUID from body: ${uuid.substring(0, 12)}...`);
+        }
+      }
+    }
   }
 
   let issuedNew = false;
   if (!uuid) {
     uuid = uuidv4();
     issuedNew = true;
-    console.log(`[UUID] Generated new UUID: ${uuid.substring(0, 8)}...`);
+    console.log(`[UUID] ⚠️  GENERATED NEW UUID: ${uuid.substring(0, 12)}...`);
   }
 
   req.visitorUuid = uuid;
 
+  // Always return the token (so client can save it on first request)
+  const newToken = `${uuid}.${sign(uuid)}`;
+  res.setHeader('x-visitor-token', newToken);
+  
   if (issuedNew) {
-    const newToken = `${uuid}.${sign(uuid)}`;
-    res.setHeader('x-visitor-token', newToken);
-    console.log(`[UUID] Sending new token in response header`);
+    console.log(`[UUID] 📤 Sending NEW token in response header`);
+  } else {
+    console.log(`[UUID] 📤 Sending token to confirm UUID`);
   }
+  console.log(`[UUID] ═══════════════════════════════════════\n`);
 
   next();
 };

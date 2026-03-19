@@ -38,6 +38,7 @@ app.use(cors({
     }
   },
   credentials: true, // allow cookies
+  exposedHeaders: ['x-visitor-token'], // 🔑 ALLOW CLIENT TO READ THIS HEADER
 }));
 app.use(express.json());
 app.use(cookieParser()); // <-- needed to read cookies
