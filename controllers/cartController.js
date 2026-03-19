@@ -52,11 +52,18 @@ export const updateCartItem = async (req, res) => {
     const uuid = req.visitorUuid
     const { itemId, quantity } = req.body
 
-    if (!uuid) return res.status(400).json({ message: "Visitor UUID missing" })
+    if (!uuid) {
+      console.warn('Update cart error: No UUID provided')
+      return res.status(400).json({ message: "Visitor UUID missing" })
+    }
     if (!itemId) return res.status(400).json({ message: "Item ID required" })
 
+    console.log(`[DEBUG] Updating item ${itemId} for UUID ${uuid}`)
     const cart = await Cart.findOne({ uuid })
-    if (!cart) return res.status(404).json({ message: "Cart not found" })
+    if (!cart) {
+      console.warn(`[DEBUG] Cart not found for UUID: ${uuid}`)
+      return res.status(404).json({ message: "Cart not found" })
+    }
 
     const item = cart.items.find(
       (i) => i._id.toString() === itemId
@@ -111,11 +118,21 @@ export const removeItem = async (req, res) => {
     const uuid = req.visitorUuid
     const itemId = req.body.itemId || req.query.itemId
 
-    if (!uuid) return res.status(400).json({ message: "Visitor UUID missing" })
-    if (!itemId) return res.status(400).json({ message: "Item ID required" })
+    if (!uuid) {
+      console.warn('Remove item error: No UUID provided')
+      return res.status(400).json({ message: "Visitor UUID missing" })
+    }
+    if (!itemId) {
+      console.warn('Remove item error: No item ID provided')
+      return res.status(400).json({ message: "Item ID required" })
+    }
 
+    console.log(`[DEBUG] Removing item ${itemId} for UUID ${uuid}`)
     const cart = await Cart.findOne({ uuid })
-    if (!cart) return res.status(404).json({ message: "Cart not found" })
+    if (!cart) {
+      console.warn(`[DEBUG] Cart not found for UUID: ${uuid}`)
+      return res.status(404).json({ message: "Cart not found" })
+    }
 
     cart.items = cart.items.filter(
       (item) => item._id.toString() !== itemId
@@ -124,7 +141,7 @@ export const removeItem = async (req, res) => {
     await cart.save()
     return res.status(200).json({ cart })
   } catch (err) {
-    console.error(err)
+    console.error('Remove item error:', err)
     res.status(500).json({ message: "Server error" })
   }
 }

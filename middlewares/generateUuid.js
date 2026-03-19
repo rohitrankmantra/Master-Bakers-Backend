@@ -28,6 +28,7 @@ export const generateUuid = (req, res, next) => {
       const [id, sig] = parts;
       if (sig === sign(id)) {
         uuid = id;
+        console.log(`[UUID] Token verified for UUID: ${uuid.substring(0, 8)}...`);
       } else {
         console.warn('Invalid visitor token signature');
       }
@@ -37,12 +38,14 @@ export const generateUuid = (req, res, next) => {
   // fallback to cookie (legacy support)
   if (!uuid && req.cookies?.uuid) {
     uuid = req.cookies.uuid;
+    console.log(`[UUID] Using cookie UUID: ${uuid.substring(0, 8)}...`);
   }
 
   let issuedNew = false;
   if (!uuid) {
     uuid = uuidv4();
     issuedNew = true;
+    console.log(`[UUID] Generated new UUID: ${uuid.substring(0, 8)}...`);
   }
 
   req.visitorUuid = uuid;
@@ -50,6 +53,7 @@ export const generateUuid = (req, res, next) => {
   if (issuedNew) {
     const newToken = `${uuid}.${sign(uuid)}`;
     res.setHeader('x-visitor-token', newToken);
+    console.log(`[UUID] Sending new token in response header`);
   }
 
   next();

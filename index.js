@@ -24,7 +24,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 // simple debug log showing which origins are allowed (omit in production if you prefer)
-console.log('Allowed CORS origins:', allowedOrigins);
+// console.log('Allowed CORS origins:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
