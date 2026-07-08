@@ -5,7 +5,6 @@ import {
   removeItem,
   updateCartItem,
 } from "../controllers/cartController.js";
-
 const router = express.Router();
 
 router.post("/add", addCart);
