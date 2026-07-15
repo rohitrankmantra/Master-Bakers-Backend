@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 import Order from "../models/Order.js";
 import Cart from "../models/Cart.js";
-import { sendAdminEmail } from "../middlewares/nodemailer.js";
+import { sendAdminEmail, sendCustomerOrderEmail } from "../middlewares/mailer.js";
 
 dotenv.config();
 
@@ -146,8 +146,11 @@ export const verifyPayment = async (req, res) => {
       await Cart.findOneAndDelete({ uuid });
     }
 
-    // 📧 Notify admin
-    await sendAdminEmail(order);
+    // 📧 Notify admin and customer
+    await Promise.allSettled([
+      sendAdminEmail(order),
+      sendCustomerOrderEmail(order),
+    ]);
 
     return res.status(200).json({
       message: "Payment verified successfully",

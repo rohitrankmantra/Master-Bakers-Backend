@@ -70,6 +70,59 @@ export const sendOTPEmail = async (email, otp, name) => {
   }
 };
 
+// 📧 Send order confirmation email to the customer
+export const sendCustomerOrderEmail = async (order) => {
+  try {
+    const customerEmail = (
+      order?.userInfo?.email ||
+      order?.userEmail ||
+      ""
+    ).toLowerCase().trim();
+
+    if (!customerEmail) {
+      console.log("No customer email found for order confirmation");
+      return false;
+    }
+
+    const emailBody = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 650px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #E5E7EB;">
+        <div style="background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%); padding: 32px 24px; text-align: center; color: white;">
+          <h1 style="margin: 0; font-size: 28px; font-weight: 700;">🧁 Your order has been placed!</h1>
+          <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.9;">Thank you for choosing BakeMasters</p>
+        </div>
+        <div style="padding: 30px 24px; color: #333;">
+          <p style="margin: 0 0 12px 0; font-size: 16px;">Hi <strong>${order.userInfo.name}</strong>,</p>
+          <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6;">
+            Your order has been received successfully and payment is complete. We are preparing your delicious items for delivery.
+          </p>
+          <div style="background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Order ID:</strong> ${order._id}</p>
+            <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Total Paid:</strong> ₹${order.totalAmount}</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Payment Status:</strong> Paid</p>
+          </div>
+          <p style="margin: 0; font-size: 14px; line-height: 1.6;">
+            We will send you another update once your order is on the way.
+          </p>
+        </div>
+        <div style="background: #F9FAFB; padding: 18px 24px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #E5E7EB;">
+          <p style="margin: 0;">© 2026 BakeMasters. Thank you for shopping with us.</p>
+        </div>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: "Bake Masters <noreply@bakemasters.in>",
+      to: customerEmail,
+      subject: "🧁 Your BakeMasters order has been placed",
+      html: emailBody,
+    });
+    return true;
+  } catch (error) {
+    console.error("Error sending customer order email:", error);
+    return false;
+  }
+};
+
 // 📧 Send admin email for new order
 export const sendAdminEmail = async (order) => {
   try {
@@ -166,9 +219,11 @@ export const sendAdminEmail = async (order) => {
       </div>
     `;
 
+    const adminEmail = (process.env.ADMIN_EMAIL || "bakemasters.in@gmail.com").toLowerCase().trim();
+
     await resend.emails.send({
       from: "Bake Masters <noreply@bakemasters.in>",
-      to: "rohitrankmantra12@gmail.com",
+      to: adminEmail,
       subject: `🧁 New Order Received - ${order._id}`,
       html: emailBody,
     });
@@ -179,4 +234,4 @@ export const sendAdminEmail = async (order) => {
   }
 };
 
-export default { sendOTPEmail, sendAdminEmail, generateOTP };
+export default { sendOTPEmail, sendAdminEmail, sendCustomerOrderEmail, generateOTP };
